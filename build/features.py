@@ -33,13 +33,13 @@ class OpenGLES(Feature):
 			build.env.Append(CPPPATH='/opt/vc/include/interface/vcos/pthreads')	# for vcos_platform_types.h
 			build.env.Append(CPPPATH='/opt/vc/include/interface/vmcs_host/linux')	 
 
-        	build.env.Append(LINKFLAGS='-lbcm_host')
-        	build.env.Append(LINKFLAGS='-lvcos')
+			build.env.Append(LINKFLAGS='-lbcm_host')
+			build.env.Append(LINKFLAGS='-lvcos')
 			conf.CheckLib('X11')  
 
-	 		## for better Performance ( http://doc.qt.io/qt-4.8/qt-embeddedlinux-opengl.html )
-	    	build.env.Append(CPPDEFINES='QT_QWS_CLIENTBLIT')
-	    	build.env.Append(CPPDEFINES='QT_NO_QWS_CURSOR')"""  
+			## for better Performance ( http://doc.qt.io/qt-4.8/qt-embeddedlinux-opengl.html )
+			build.env.Append(CPPDEFINES='QT_QWS_CLIENTBLIT')
+			build.env.Append(CPPDEFINES='QT_NO_QWS_CURSOR')"""  
 	
 	def sources(self, build):
 		return []
