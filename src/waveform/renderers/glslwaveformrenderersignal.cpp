@@ -1,4 +1,4 @@
-#include <QGLFramebufferObject>
+//#include <QGLFramebufferObject>
 
 #include "waveform/renderers/glslwaveformrenderersignal.h"
 #include "waveform/renderers/waveformwidgetrenderer.h"
@@ -6,6 +6,23 @@
 #include "waveform/waveform.h"
 #include "waveform/waveformwidgetfactory.h"
 #include "controlobjectthread.h"
+
+#include <EGL/egl.h>
+#include <EGL/eglext.h>  
+#include <GLES2/gl2.h> 
+
+#if defined(__RASPBERRYPI__)
+#include <bcm_host.h>
+#endif
+
+#define VERTEX_POS_SIZE 2 // x, y
+#define VERTEX_POS_INDX 0u
+GLuint vboId;
+
+typedef struct
+{
+	GLfloat x, y;
+} Vertex;
 
 GLSLWaveformRendererSignal::GLSLWaveformRendererSignal(WaveformWidgetRenderer* waveformWidgetRenderer,
                                                        bool rgbShader)
@@ -19,6 +36,9 @@ GLSLWaveformRendererSignal::GLSLWaveformRendererSignal(WaveformWidgetRenderer* w
           m_shadersValid(false),
           m_rgbShader(rgbShader),
           m_frameShaderProgram(NULL) {
+#if defined(__RASPBERRYPI__)
+    bcm_host_init();
+#endif
 }
 
 GLSLWaveformRendererSignal::~GLSLWaveformRendererSignal() {
@@ -34,6 +54,9 @@ GLSLWaveformRendererSignal::~GLSLWaveformRendererSignal() {
     if (m_framebuffer) {
         delete m_framebuffer;
     }
+#if defined(__RASPBERRYPI__)
+    bcm_host_deinit();
+#endif
 }
 
 void GLSLWaveformRendererSignal::debugClick() {
@@ -51,6 +74,8 @@ bool GLSLWaveformRendererSignal::loadShaders() {
 
     m_frameShaderProgram->removeAllShaders();
 
+#ifndef __OPENGLES__
+
     if (!m_frameShaderProgram->addShaderFromSourceFile(
             QGLShader::Vertex, ":shaders/passthrough.vert")) {
         qDebug() << "GLWaveformRendererSignalShader::loadShaders - "
@@ -66,6 +91,29 @@ bool GLSLWaveformRendererSignal::loadShaders() {
                  << m_frameShaderProgram->log();
         return false;
     }
+
+#else
+	//For testpurposes (performance on PI) i used simple shaders.  
+	QString vertexshader = QString("//#version 100 \n attribute vec4 vPosition;\n void main(void)\n {\n gl_Position = vPosition; \n }\n");
+                     
+    if (!m_frameShaderProgram->addShaderFromSourceCode(
+            QGLShader::Vertex, vertexshader)) {
+        qDebug() << "GLWaveformRendererSignalShader::loadShaders - "
+                 << m_frameShaderProgram->log();
+        return false;
+    }
+	QString fragmentshader = QString("#version 120 \n void main(void) \n { \n gl_FragColor = vec4 ( 1.0, 0.0, 0.0, 1.0 ); \n } \n ");                                           
+ 
+    if (!m_frameShaderProgram->addShaderFromSourceCode(
+            QGLShader::Fragment, fragmentshader)) {
+        qDebug() << "GLWaveformRendererSignalShader::loadShaders - "
+                 << m_frameShaderProgram->log();
+        return false;
+    }
+
+    m_frameShaderProgram->bindAttributeLocation("vPosition", 0);
+
+#endif
 
     if (!m_frameShaderProgram->link()) {
         qDebug() << "GLWaveformRendererSignalShader::loadShaders - "
@@ -207,10 +255,13 @@ bool GLSLWaveformRendererSignal::onInit() {
     if (!loadShaders()) {
         return false;
     }
-    createGeometry();
+
+	createGeometry();
+#ifndef __OPENGLES__
     if (!loadTexture()) {
         return false;
     }
+#endif
 
     return true;
 }
@@ -221,15 +272,15 @@ void GLSLWaveformRendererSignal::onSetup(const QDomNode& node) {
 
 void GLSLWaveformRendererSignal::onSetTrack() {
     m_loadedWaveform = 0;
-    loadTexture();
+    //loadTexture();
 }
 
 void GLSLWaveformRendererSignal::onResize() {
-    createFrameBuffers();
+    //createFrameBuffers();
 }
 
 void GLSLWaveformRendererSignal::draw(QPainter* painter, QPaintEvent* /*event*/) {
-    if (!m_frameBuffersValid || !m_shadersValid) {
+    if ( !m_shadersValid) {// !m_frameBuffersValid ||
         return;
     }
 
@@ -425,6 +476,57 @@ void GLSLWaveformRendererSignal::draw(QPainter* painter, QPaintEvent* /*event*/)
     glPopMatrix();
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
+
+#else
+
+    firstVisualIndex = firstVisualIndex * 2.0;
+    lastVisualIndex = lastVisualIndex * 2.0;
+
+    const int firstIndex = int(firstVisualIndex+0.5);
+    firstVisualIndex = firstIndex - firstIndex%2;
+
+    const int lastIndex = int(lastVisualIndex+0.5);
+    lastVisualIndex = lastIndex + lastIndex%2;
+
+    float maxAll[2];
+    std::vector<Vertex> vertices; // Waveformvertices
+
+    float index_delta = lastIndex - firstIndex;
+    for (int visualIndex = firstVisualIndex; visualIndex < lastVisualIndex;  visualIndex += 2) {
+
+		if (visualIndex < 0)
+		    continue;
+
+		if (visualIndex > dataSize - 1)
+		    break;
+
+		//Calculate X-axis viewporttransform of Waveformindizes (reaching from lastIndex to firstIndex)
+		//to fit into GL-Box (reaching from -1 to +1)
+		float glxpos=(visualIndex-firstVisualIndex)/(index_delta)*2-1;
+		//Scale Y-axis
+		//TODO:Couple to scale in settings
+		float glyscale = 300.0f;
+		maxAll[0] = (float)(data[visualIndex].filtered.all/glyscale);
+		maxAll[1] = (float)(data[visualIndex+1].filtered.all/glyscale);
+		//Generate Vertices
+	      	vertices.push_back({glxpos, maxAll[0]});
+	      	vertices.push_back({glxpos, -1.f*maxAll[1]});
+    	}
+
+	glGenBuffers(1, &vboId); // Generate VBO
+	glBindBuffer(GL_ARRAY_BUFFER, vboId); // Bind VBO
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW); // Load data in VBO
+	glEnableVertexAttribArray(VERTEX_POS_INDX); // Tell GL that Vertexdata is at VERTEX_POS_INDX
+	glVertexAttribPointer(VERTEX_POS_INDX, VERTEX_POS_SIZE,	GL_FLOAT, GL_FALSE, 0, 0); // Tell GL how the Vertexdata in the VBO looks like
+
+	glViewport(0, 0,  m_waveformRenderer->getWidth(), m_waveformRenderer->getHeight());
+
+	m_frameShaderProgram->bind();
+	//Draw vertices = Waveform
+	glDrawArrays(GL_LINES, 0, vertices.size());
+
+	m_frameShaderProgram->release();
+	glDeleteBuffers(1, &vboId);
 
 #endif
 

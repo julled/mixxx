@@ -22,6 +22,23 @@ class OpenGLES(Feature):
           		return
 		if build.flags['opengles']:
 			build.env.Append(CPPDEFINES='__OPENGLES__')
+			conf.CheckLib('EGL')        
+			conf.CheckLib('GLESv2')  
+			build.env.Append(LIBPATH='/usr/lib/x86_64-linux-gnu/mesa-egl')	
+		
+			###For Compilation on PI2
+			"""build.env.Append(CPPDEFINES='__RASPBERRYPI__')
+			build.env.Append(LIBPATH='/opt/vc/lib')		# for GLESv2/EGL .so 
+			build.env.Append(CPPPATH='/opt/vc/include')	# for bcm_host.h
+			build.env.Append(CPPPATH='/opt/vc/include/interface/vcos/pthreads')	# for vcos_platform_types.h
+			build.env.Append(CPPPATH='/opt/vc/include/interface/vmcs_host/linux')	 
+
+        	build.env.Append(LINKFLAGS='-lbcm_host')
+        	build.env.Append(LINKFLAGS='-lvcos')
+
+	 		## for better Performance ( http://doc.qt.io/qt-4.8/qt-embeddedlinux-opengl.html )
+		    	build.env.Append(CPPDEFINES='QT_QWS_CLIENTBLIT')
+		    	build.env.Append(CPPDEFINES='QT_NO_QWS_CURSOR')"""  
 	
 	def sources(self, build):
 		return []

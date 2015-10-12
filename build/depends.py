@@ -56,7 +56,8 @@ class PortMIDI(Dependence):
 
 
 class OpenGL(Dependence):
-
+#Commented out to compile with GLES Libs only
+	"""
     def configure(self, build, conf):
         if build.platform_is_osx:
             build.env.AppendUnique(FRAMEWORKS='OpenGL')
@@ -72,7 +73,7 @@ class OpenGL(Dependence):
                 not conf.CheckLib('glu32') and
                 not conf.CheckCHeader('OpenGL/glu.h')):
             raise Exception('Did not find GLU development files')
-
+	"""
 
 class SecurityFramework(Dependence):
     """The iOS/OS X security framework is used to implement sandboxing."""
