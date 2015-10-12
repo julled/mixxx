@@ -272,15 +272,15 @@ void GLSLWaveformRendererSignal::onSetup(const QDomNode& node) {
 
 void GLSLWaveformRendererSignal::onSetTrack() {
     m_loadedWaveform = 0;
-    //loadTexture();
+    loadTexture();
 }
 
 void GLSLWaveformRendererSignal::onResize() {
-    //createFrameBuffers();
+    createFrameBuffers();
 }
 
 void GLSLWaveformRendererSignal::draw(QPainter* painter, QPaintEvent* /*event*/) {
-    if ( !m_shadersValid) {// !m_frameBuffersValid ||
+    if ( !m_frameBuffersValid ||!m_shadersValid) { 
         return;
     }
 

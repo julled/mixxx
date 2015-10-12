@@ -136,7 +136,7 @@ void VSyncThread::swapGl(QGLWidget* glw, int index) {
 
     //glXSwapBuffers seem to be not available on GLES2.0...
     //use glw->swapBuffers() instead. 
-	//That solution compiles and works on x86 Ubuntu machine with Qt4.8
+	//That solution compiles and works on x86 Ubuntu machine with Qt4.8 and PI with QT4.x 
     glw->swapBuffers(); 
 #else
     glw->swapBuffers();
