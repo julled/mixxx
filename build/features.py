@@ -35,10 +35,11 @@ class OpenGLES(Feature):
 
         	build.env.Append(LINKFLAGS='-lbcm_host')
         	build.env.Append(LINKFLAGS='-lvcos')
+			conf.CheckLib('X11')  
 
 	 		## for better Performance ( http://doc.qt.io/qt-4.8/qt-embeddedlinux-opengl.html )
-		    	build.env.Append(CPPDEFINES='QT_QWS_CLIENTBLIT')
-		    	build.env.Append(CPPDEFINES='QT_NO_QWS_CURSOR')"""  
+	    	build.env.Append(CPPDEFINES='QT_QWS_CLIENTBLIT')
+	    	build.env.Append(CPPDEFINES='QT_NO_QWS_CURSOR')"""  
 	
 	def sources(self, build):
 		return []
