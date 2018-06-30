@@ -613,6 +613,12 @@ class RubberBand(Dependence):
             raise Exception(
                 "Could not find librubberband or its development headers.")
 
+class zLib(Dependence):
+    def configure(self, build, conf):
+        libs = ['z']
+        if not conf.CheckLib(libs):
+            raise Exception(
+                "Could not find libtag or its development headers.")
 
 class TagLib(Dependence):
     def configure(self, build, conf):
@@ -1031,6 +1037,10 @@ class MixxxCore(Feature):
                    "library/banshee/bansheefeature.cpp",
                    "library/banshee/bansheeplaylistmodel.cpp",
                    "library/banshee/bansheedbconnection.cpp",
+
+                   "library/clementine/clementinefeature.cpp",
+                   "library/clementine/clementineplaylistmodel.cpp",
+                   "library/clementine/clementinedbconnection.cpp",
 
                    "library/itunes/itunesfeature.cpp",
                    "library/traktor/traktorfeature.cpp",
@@ -1517,7 +1527,7 @@ class MixxxCore(Feature):
         return [SoundTouch, ReplayGain, Ebur128Mit, PortAudio, PortMIDI, Qt, TestHeaders,
                 FidLib, SndFile, FLAC, OggVorbis, OpenGL, TagLib, ProtoBuf,
                 Chromaprint, RubberBand, SecurityFramework, CoreServices, IOKit,
-                QtScriptByteArray, Reverb, FpClassify, PortAudioRingBuffer]
+                QtScriptByteArray, Reverb, FpClassify, PortAudioRingBuffer,zLib]
 
     def post_dependency_check_configure(self, build, conf):
         """Sets up additional things in the Environment that must happen
